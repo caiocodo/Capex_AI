@@ -13,7 +13,9 @@ def print_json_for_llm_help(file_paths: list, output_folder: str) -> None:
     date_str = datetime.datetime.now().strftime("%Y_%m_%d")
     counter = 1
     while True:
-        output_file = output_folder + f"\\{date_str}_{counter:02d}_project_export.json"
+        output_file = os.path.join(
+            output_folder, f"{date_str}_{counter:02d}_project_export.json"
+        )
         if not os.path.exists(output_file):
             break
         counter += 1
