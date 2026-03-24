@@ -1,8 +1,26 @@
-# Como usar
+# Capex_AI (fundação)
 
-1. Baixe este template no formato zip ou clone este repositorio.
-2. Renomeie a pasta PROJECT_TEMPLATE_PY para o nome do seu projeto.
-3. Abra o arquivo `main.py` no seu editor de código preferido.
-4. Leia atentamente todo o código do arquivo `main.py`.
-5. Não é necessário ler os demais arquivos, todas as explicações são feitas em comentarios na função `main()`. 
-3. Comece a escrever seu próprio código onde está indicado na função `main()`.
+Projeto Python para fundação de monitoramento e análise de gastos de projetos, com foco em:
+- modelo relacional confiável;
+- qualidade de dados;
+- rastreabilidade.
+
+## Escopo desta rodada
+- Carga de dados a partir de **um único arquivo Excel** com 5 abas.
+- Mapeamento explícito entre nomes originais de tabela e aliases internos.
+- Estrutura inicial de validação de relações como hipóteses operacionais.
+- Base de testes/lint (`pytest` e `ruff`).
+
+## Estrutura principal
+- `configs/schema.yaml`: definição de tabelas, aliases, colunas e relações conhecidas.
+- `src/capex_ai/io/excel_loader.py`: carregamento das abas do Excel.
+- `src/capex_ai/models/schema.py`: modelo tipado do schema.
+- `src/capex_ai/validation/relations.py`: validação estrutural mínima das relações.
+- `tests/`: testes iniciais.
+
+## Comandos
+```bash
+python -m pip install -e ".[dev]"
+pytest
+ruff check .
+```

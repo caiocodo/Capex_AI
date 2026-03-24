@@ -1,0 +1,209 @@
+version: 1
+source:
+  kind: excel_workbook
+  description: "Arquivo Excel único com 5 abas/tabelas de origem."
+
+tables:
+  - original_name: admafecost
+    alias: admafecost
+    columns:
+      - admafecostid
+      - description
+      - orgid
+      - siteid
+      - afeenteredinv
+      - afeopencommitment
+      - afespend
+      - afeuncommitted
+      - afewapprpo
+      - authorized
+      - basecurrency
+      - commitmentcalcdate
+      - currencycodeto
+      - includelabor
+      - overcommitted
+      - wonum
+      - hasld
+      - includeoutside
+      - invprepay
+      - inventprepay
+      - invspentprepay
+      - skiprun
+      - skipwo
+
+  - original_name: INV-AFE
+    alias: inv_afe
+    columns:
+      - invoicenum
+      - vendor
+      - invoicelinenum
+      - gldebitacct
+      - linecost
+      - percentage
+      - location
+      - siteid
+      - refwo
+      - invoicecostid
+      - afenumber
+
+  - original_name: INVOICECOST
+    alias: invoicecost
+    columns:
+      - invoicenum
+      - vendor
+      - invoicelinenum
+      - gldebitacct
+      - glcreditacct
+      - assetnum
+      - unitcost
+      - linecost
+      - percentage
+      - memo
+      - costlinenum
+      - chargestore
+      - ict1
+      - ict2
+      - ict3
+      - quantity
+      - location
+      - fincntrlid
+      - siteid
+      - orgid
+      - refwo
+      - enteredastask
+      - invoicecostid
+      - tositeid
+      - afenumber
+      - afeassettype
+      - budgetcode
+      - codetype
+      - afeassetnum
+      - subledgertype
+      - admchangedate
+      - positeid
+      - CHAVE_WO_CODE
+      - CHAVE_INVOICE
+
+  - original_name: multiassetlocci
+    alias: multiassetlocci
+    columns:
+      - multiid
+      - assetnum
+      - location
+      - cinum
+      - sequence
+      - progress
+      - isprimary
+      - workorgid
+      - worksiteid
+      - orgid
+      - siteid
+      - comments
+      - route
+      - routestop
+      - movetoparent
+      - movetolocation
+      - movetobin
+      - performmoveto
+      - targetdesc
+      - recordkey
+      - recordclass
+      - langcode
+      - startassetfeatureid
+      - assetfeatureid
+      - endassetfeatureid
+      - endmeasure
+      - endoffset
+      - endyoffset
+      - endzoffset
+      - startmeasure
+      - startoffset
+      - startyoffset
+      - startzoffset
+      - movetosite
+      - newassetnum
+      - replacementsite
+      - replaceassetnum
+      - newreplaceassetnum
+      - hasld
+      - startyoffsetref
+      - endyoffsetref
+      - startzoffsetref
+      - endzoffsetref
+      - basemeasureunitid
+      - endbasemeasure
+      - endmeasureunitid
+      - endoffsetunitid
+      - startbasemeasure
+      - startmeasureunitid
+      - startoffsetunitid
+      - feature
+      - featurelabel
+      - afeassettype
+      - budget
+      - budgetcode
+      - codetype
+      - afeassetnum
+      - description
+      - inspformnum
+      - totalworkunits
+      - CHAVE_WO_CODE
+
+  - original_name: WO-AFES
+    alias: wo_afes
+    columns:
+      - wonum
+      - description
+      - status
+      - statusdate
+      - location
+      - GLACCOUNT
+      - TARGSTARTDATE
+      - TARGCOMPDATE
+      - EXTENDEDTARGCOMPDATE
+      - AFETYPE
+      - AFEREASON
+      - WOBUDGET
+      - internalcosts
+      - EXCHANGERATE
+      - CONTROLWOLOCAL
+      - AFENUMBER
+      - REPORTEDBY
+      - SUPERVISOR
+
+relationships:
+  - name: wo_afes_to_admafecost_by_wonum
+    kind: operational_hypothesis
+    left:
+      table_alias: wo_afes
+      column: wonum
+    right:
+      table_alias: admafecost
+      column: wonum
+
+  - name: wo_afes_to_inv_afe_by_wonum_refwo
+    kind: operational_hypothesis
+    left:
+      table_alias: wo_afes
+      column: wonum
+    right:
+      table_alias: inv_afe
+      column: refwo
+
+  - name: wo_afes_to_multiassetlocci_by_wonum_recordkey
+    kind: operational_hypothesis
+    left:
+      table_alias: wo_afes
+      column: wonum
+    right:
+      table_alias: multiassetlocci
+      column: recordkey
+
+  - name: invoicecost_to_multiassetlocci_by_chave_wo_code
+    kind: operational_hypothesis
+    left:
+      table_alias: invoicecost
+      column: CHAVE_WO_CODE
+    right:
+      table_alias: multiassetlocci
+      column: CHAVE_WO_CODE
