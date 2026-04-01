@@ -1,5 +1,7 @@
-"""Fundação do projeto Capex AI."""
+"""Pacote Capex AI.
 
-from .models.schema import RelationshipSpec, SchemaSpec, TableSpec, load_schema
+Evita imports pesados no topo para permitir execução de CLIs com `--help`
+em ambientes onde dependências opcionais ainda não foram instaladas.
+"""
 
-__all__ = ["SchemaSpec", "TableSpec", "RelationshipSpec", "load_schema"]
+__all__: list[str] = []
