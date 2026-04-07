@@ -2,7 +2,8 @@ from pathlib import Path
 
 import pytest
 
-pytest.importorskip("yaml")
+pytestmark = pytest.mark.core
+
 
 SCHEMA_PATH = Path("configs/schema.yaml")
 

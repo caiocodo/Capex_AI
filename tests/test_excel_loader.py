@@ -5,13 +5,21 @@ from dataclasses import dataclass
 
 import pytest
 
-pd = pytest.importorskip("pandas")
-pytest.importorskip("yaml")
+pytestmark = pytest.mark.core
 
-_excel_loader = importlib.import_module("capex_ai.io.excel_loader")
-MissingRequiredColumnsError = _excel_loader.MissingRequiredColumnsError
-MissingWorksheetError = _excel_loader.MissingWorksheetError
-load_canonical_workbook = _excel_loader.load_canonical_workbook
+
+def _excel_loader_module():
+    return importlib.import_module("capex_ai.io.excel_loader")
+
+
+def _pd() -> object:
+    try:
+        return importlib.import_module("pandas")
+    except ModuleNotFoundError:
+        pytest.fail(
+            "Dependência obrigatória ausente: pandas. "
+            "Execute `python scripts/preflight_check.py` para validar o runtime."
+        )
 
 
 @dataclass(frozen=True)
@@ -42,15 +50,15 @@ def test_load_canonical_workbook_success(monkeypatch: pytest.MonkeyPatch) -> Non
     def fake_excel_file(_path: object) -> _FakeExcelFile:
         return _FakeExcelFile(sheet_names=["admafecost", "INV-AFE"])
 
-    def fake_read_excel(_path: object, sheet_name: str) -> pd.DataFrame:
+    def fake_read_excel(_path: object, sheet_name: str) -> _pd().DataFrame:
         if sheet_name == "admafecost":
-            return pd.DataFrame({" WONUM ": ["WO1"], "SITEID": ["S1"]})
-        return pd.DataFrame({"INVOICENUM": ["I1"], " refwo ": ["WO1"]})
+            return _pd().DataFrame({" WONUM ": ["WO1"], "SITEID": ["S1"]})
+        return _pd().DataFrame({"INVOICENUM": ["I1"], " refwo ": ["WO1"]})
 
-    monkeypatch.setattr(pd, "ExcelFile", fake_excel_file)
-    monkeypatch.setattr(pd, "read_excel", fake_read_excel)
+    monkeypatch.setattr(_pd(), "ExcelFile", fake_excel_file)
+    monkeypatch.setattr(_pd(), "read_excel", fake_read_excel)
 
-    result = load_canonical_workbook("fake.xlsx", schema)
+    result = _excel_loader_module().load_canonical_workbook("fake.xlsx", schema)
 
     assert set(result.keys()) == {"admafecost", "inv_afe"}
     assert list(result["admafecost"].columns) == ["wonum", "siteid"]
@@ -65,10 +73,17 @@ def test_load_canonical_workbook_missing_sheet(monkeypatch: pytest.MonkeyPatch) 
         ]
     )
 
-    monkeypatch.setattr(pd, "ExcelFile", lambda _path: _FakeExcelFile(sheet_names=["admafecost"]))
+    monkeypatch.setattr(
+        _pd(),
+        "ExcelFile",
+        lambda _path: _FakeExcelFile(sheet_names=["admafecost"]),
+    )
 
-    with pytest.raises(MissingWorksheetError, match="Workbook sem abas esperadas"):
-        load_canonical_workbook("fake.xlsx", schema)
+    with pytest.raises(
+        _excel_loader_module().MissingWorksheetError,
+        match="Workbook sem abas esperadas",
+    ):
+        _excel_loader_module().load_canonical_workbook("fake.xlsx", schema)
 
 
 def test_load_canonical_workbook_missing_required_column(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -78,15 +93,22 @@ def test_load_canonical_workbook_missing_required_column(monkeypatch: pytest.Mon
         ]
     )
 
-    monkeypatch.setattr(pd, "ExcelFile", lambda _path: _FakeExcelFile(sheet_names=["admafecost"]))
     monkeypatch.setattr(
-        pd,
+        _pd(),
+        "ExcelFile",
+        lambda _path: _FakeExcelFile(sheet_names=["admafecost"]),
+    )
+    monkeypatch.setattr(
+        _pd(),
         "read_excel",
-        lambda _path, sheet_name: pd.DataFrame({"wonum": ["WO1"]}),
+        lambda _path, sheet_name: _pd().DataFrame({"wonum": ["WO1"]}),
     )
 
-    with pytest.raises(MissingRequiredColumnsError, match="colunas obrigatórias"):
-        load_canonical_workbook("fake.xlsx", schema)
+    with pytest.raises(
+        _excel_loader_module().MissingRequiredColumnsError,
+        match="colunas obrigatórias",
+    ):
+        _excel_loader_module().load_canonical_workbook("fake.xlsx", schema)
 
 
 def test_column_normalization_trim_case_and_single_spaces(
@@ -98,11 +120,11 @@ def test_column_normalization_trim_case_and_single_spaces(
         ]
     )
 
-    monkeypatch.setattr(pd, "ExcelFile", lambda _path: _FakeExcelFile(sheet_names=["T1"]))
+    monkeypatch.setattr(_pd(), "ExcelFile", lambda _path: _FakeExcelFile(sheet_names=["T1"]))
     monkeypatch.setattr(
-        pd,
+        _pd(),
         "read_excel",
-        lambda _path, sheet_name: pd.DataFrame(
+        lambda _path, sheet_name: _pd().DataFrame(
             {
                 "  COST   CENTER  ": ["CC1"],
                 " code ": ["A1"],
@@ -110,6 +132,6 @@ def test_column_normalization_trim_case_and_single_spaces(
         ),
     )
 
-    result = load_canonical_workbook("fake.xlsx", schema)
+    result = _excel_loader_module().load_canonical_workbook("fake.xlsx", schema)
 
     assert list(result["t1"].columns) == ["Cost Center", "Code"]

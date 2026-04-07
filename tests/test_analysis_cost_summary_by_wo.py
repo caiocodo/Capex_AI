@@ -1,8 +1,19 @@
+from __future__ import annotations
+
+import importlib
+
 import pytest
 
-pd = pytest.importorskip("pandas")
-pytest.importorskip("yaml")
+pytestmark = pytest.mark.core
 
+def _pd() -> object:
+    try:
+        return importlib.import_module("pandas")
+    except ModuleNotFoundError:
+        pytest.fail(
+            "Dependência obrigatória ausente: pandas. "
+            "Execute `python scripts/preflight_check.py` para validar o runtime."
+        )
 
 def _schema_for_costs() -> object:
     from capex_ai.models.schema import RelationshipSpec, SchemaSpec, SideSpec
@@ -39,14 +50,13 @@ def _schema_for_costs() -> object:
         ],
     )
 
-
 def test_summarize_costs_by_wo_conservative_fields_and_totals() -> None:
     from capex_ai.analysis.cost_summary_by_wo import summarize_costs_by_wo
 
     schema = _schema_for_costs()
     frames = {
-        "wo_afes": pd.DataFrame({"wonum": ["WO1", "WO2"]}),
-        "admafecost": pd.DataFrame(
+        "wo_afes": _pd().DataFrame({"wonum": ["WO1", "WO2"]}),
+        "admafecost": _pd().DataFrame(
             {
                 "wonum": ["WO1"],
                 "afeenteredinv": [10],
@@ -56,9 +66,9 @@ def test_summarize_costs_by_wo_conservative_fields_and_totals() -> None:
                 "afewapprpo": [1],
             }
         ),
-        "inv_afe": pd.DataFrame({"refwo": ["WO1", "WO1", "WO2"], "linecost": [3, 2, 4]}),
-        "invoicecost": pd.DataFrame({"CHAVE_WO_CODE": ["C1", "C2"], "linecost": [100, 50]}),
-        "multiassetlocci": pd.DataFrame(
+        "inv_afe": _pd().DataFrame({"refwo": ["WO1", "WO1", "WO2"], "linecost": [3, 2, 4]}),
+        "invoicecost": _pd().DataFrame({"CHAVE_WO_CODE": ["C1", "C2"], "linecost": [100, 50]}),
+        "multiassetlocci": _pd().DataFrame(
             {"CHAVE_WO_CODE": ["C1", "C2"], "recordkey": ["WO1", "WO2"]}
         ),
     }

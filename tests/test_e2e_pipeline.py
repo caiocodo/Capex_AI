@@ -4,6 +4,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.integration
+
 pd = pytest.importorskip("pandas")
 pytest.importorskip("yaml")
 pytest.importorskip("openpyxl")

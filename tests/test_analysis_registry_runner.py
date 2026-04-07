@@ -1,8 +1,19 @@
+from __future__ import annotations
+
+import importlib
+
 import pytest
 
-pd = pytest.importorskip("pandas")
-pytest.importorskip("yaml")
+pytestmark = pytest.mark.core
 
+def _pd() -> object:
+    try:
+        return importlib.import_module("pandas")
+    except ModuleNotFoundError:
+        pytest.fail(
+            "Dependência obrigatória ausente: pandas. "
+            "Execute `python scripts/preflight_check.py` para validar o runtime."
+        )
 
 def test_registry_lists_available_analyses() -> None:
     from capex_ai.analysis.runner import list_available_analyses
@@ -13,7 +24,6 @@ def test_registry_lists_available_analyses() -> None:
     assert "orphan_records" in ids
     assert "cost_summary_by_wo" in ids
 
-
 def test_runner_executes_analysis_with_injected_registry(monkeypatch: pytest.MonkeyPatch) -> None:
     from capex_ai.analysis.base import AnalysisMetadata, AnalysisRunOutput, RegisteredAnalysis
     from capex_ai.analysis.runner import run_analysis
@@ -22,8 +32,8 @@ def test_runner_executes_analysis_with_injected_registry(monkeypatch: pytest.Mon
         return object()
 
     frames = {
-        "wo_afes": pd.DataFrame({"wonum": ["WO1"]}),
-        "admafecost": pd.DataFrame({"wonum": ["WO1"]}),
+        "wo_afes": _pd().DataFrame({"wonum": ["WO1"]}),
+        "admafecost": _pd().DataFrame({"wonum": ["WO1"]}),
     }
 
     def fake_load_frames(excel_path, schema_path):
@@ -52,7 +62,7 @@ def test_runner_executes_analysis_with_injected_registry(monkeypatch: pytest.Mon
             applied_filters="sem filtros",
             data_quality_limitations=[],
             fields_used=["wo_afes.wonum"],
-            dataframe=pd.DataFrame({"wonum": ["WO1"]}),
+            dataframe=_pd().DataFrame({"wonum": ["WO1"]}),
             details={},
         )
 
@@ -79,7 +89,6 @@ def test_runner_executes_analysis_with_injected_registry(monkeypatch: pytest.Mon
 
     assert output.metadata.analysis_id == "fake"
     assert output.universe_analyzed["wo_afes"] == 1
-
 
 def test_runner_validates_required_params() -> None:
     from capex_ai.analysis.base import (
@@ -128,7 +137,6 @@ def test_runner_validates_required_params() -> None:
             params={},
             registry=registry,
         )
-
 
 def test_runner_unknown_analysis_has_clear_error() -> None:
     from capex_ai.analysis.runner import run_analysis

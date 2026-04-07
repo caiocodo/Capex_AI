@@ -1,8 +1,19 @@
+from __future__ import annotations
+
+import importlib
+
 import pytest
 
-pd = pytest.importorskip("pandas")
-pytest.importorskip("yaml")
+pytestmark = pytest.mark.core
 
+def _pd() -> object:
+    try:
+        return importlib.import_module("pandas")
+    except ModuleNotFoundError:
+        pytest.fail(
+            "Dependência obrigatória ausente: pandas. "
+            "Execute `python scripts/preflight_check.py` para validar o runtime."
+        )
 
 def _schema_for_relation() -> object:
     from capex_ai.models.schema import RelationshipSpec, SchemaSpec, SideSpec
@@ -21,14 +32,13 @@ def _schema_for_relation() -> object:
         ],
     )
 
-
 def test_analyze_orphan_records_counts_and_samples() -> None:
     from capex_ai.analysis.orphan_records import analyze_orphan_records
 
     schema = _schema_for_relation()
     frames = {
-        "wo_afes": pd.DataFrame({"wonum": ["WO1", "WO2", "WO3"]}),
-        "admafecost": pd.DataFrame({"wonum": ["WO1", "WOX"]}),
+        "wo_afes": _pd().DataFrame({"wonum": ["WO1", "WO2", "WO3"]}),
+        "admafecost": _pd().DataFrame({"wonum": ["WO1", "WOX"]}),
     }
 
     result = analyze_orphan_records(frames=frames, schema=schema)

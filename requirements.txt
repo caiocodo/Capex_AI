@@ -1,1 +1,5 @@
-# Geral
+pandas>=2.0
+PyYAML>=6.0
+openpyxl>=3.1
+pytest>=8.0
+ruff>=0.6
