@@ -40,3 +40,28 @@ python scripts/run_analysis.py --analysis-id orphan_records --excel-path /caminh
 1. Instalar em modo editable: `python -m pip install -e ".[dev]"`
 2. Executar scripts a partir da raiz do repositório.
 3. Para smoke de CLI: use `--help` (não depende de workbook).
+
+
+## Critério mínimo de aceite (TDD operacional)
+- Dependências obrigatórias de runtime instaladas: `pandas`, `PyYAML`, `openpyxl`.
+- Testes **core** devem passar sem skip mascarando ausência de runtime.
+- Testes de integração/E2E são marcados com `integration`.
+
+### Preflight/readiness explícito
+Antes de validar pipeline real, execute:
+```bash
+python scripts/preflight_check.py
+```
+Esse comando falha com exit code `1` quando faltam dependências obrigatórias ou arquivos essenciais.
+
+### Execução de testes por escopo
+```bash
+# suíte completa
+pytest -rs
+
+# apenas core (obrigatórios para aceite mínimo)
+pytest -rs -m core
+
+# apenas integração/E2E
+pytest -rs -m integration
+```
