@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from capex_ai.models.schema import SchemaSpec, load_schema
+from capex_ai.models.schema import SchemaSpec
 
 DataFramesByAlias = dict[str, pd.DataFrame]
 
@@ -111,5 +111,7 @@ def load_canonical_workbook_from_schema_file(
     excel_path: str | Path,
     schema_path: str | Path = "configs/schema.yaml",
 ) -> DataFramesByAlias:
+    from capex_ai.models.schema import load_schema
+
     schema = load_schema(schema_path)
     return load_canonical_workbook(excel_path=excel_path, schema=schema)

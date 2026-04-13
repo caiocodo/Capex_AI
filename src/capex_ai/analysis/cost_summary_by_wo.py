@@ -160,5 +160,7 @@ def summarize_costs_by_wo(
         data_quality_limitations=quality_notes,
         fields_used=fields_used,
         ambiguity_notes=ambiguity_notes,
-        dataframe=summary.sort_values("wonum").reset_index(drop=True),
+        dataframe=summary.sort_values("wonum", key=lambda col: col.astype(str)).reset_index(
+            drop=True
+        ),
     )
