@@ -83,3 +83,22 @@ def test_summarize_costs_by_wo_conservative_fields_and_totals() -> None:
     assert wo1["inv_afe_linecost_total"] == 5
     assert wo1["invoicecost_linecost_total"] == 100
     assert wo1["afespend"] == 7
+
+
+def test_summarize_costs_by_wo_accepts_mixed_wonum_types() -> None:
+    from capex_ai.analysis.cost_summary_by_wo import summarize_costs_by_wo
+
+    schema = _schema_for_costs()
+    frames = {
+        "wo_afes": _pd().DataFrame({"wonum": ["WO1", 1002]}),
+        "admafecost": _pd().DataFrame({"wonum": ["WO1", 1002], "afespend": [7, 11]}),
+        "inv_afe": _pd().DataFrame({"refwo": ["WO1", 1002], "linecost": [3, 4]}),
+        "invoicecost": _pd().DataFrame({"CHAVE_WO_CODE": ["C1", "C2"], "linecost": [100, 50]}),
+        "multiassetlocci": _pd().DataFrame(
+            {"CHAVE_WO_CODE": ["C1", "C2"], "recordkey": ["WO1", 1002]}
+        ),
+    }
+
+    result = summarize_costs_by_wo(frames=frames, schema=schema)
+
+    assert list(result.dataframe["wonum"]) == [1002, "WO1"]
