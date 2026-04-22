@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import importlib
-import sys
 from pathlib import Path
 
 REQUIRED_MODULES = ("pandas", "yaml", "openpyxl")

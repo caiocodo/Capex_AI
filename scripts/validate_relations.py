@@ -60,14 +60,16 @@ def main() -> None:
             f"linhas={result.left_metrics.total_rows}, "
             f"nulos={result.left_metrics.null_count} ({result.left_metrics.null_pct}%), "
             f"duplicidades_linhas={result.left_metrics.duplicate_rows_count}, "
-            f"match={result.left_metrics.matched_rows_count} ({result.left_metrics.matched_rows_pct}%)"
+            f"match={result.left_metrics.matched_rows_count} "
+            f"({result.left_metrics.matched_rows_pct}%)"
         )
         print(
             "- Lado direito: "
             f"linhas={result.right_metrics.total_rows}, "
             f"nulos={result.right_metrics.null_count} ({result.right_metrics.null_pct}%), "
             f"duplicidades_linhas={result.right_metrics.duplicate_rows_count}, "
-            f"match={result.right_metrics.matched_rows_count} ({result.right_metrics.matched_rows_pct}%)"
+            f"match={result.right_metrics.matched_rows_count} "
+            f"({result.right_metrics.matched_rows_pct}%)"
         )
         print(f"- Amostra não casados (esquerda): {result.unmatched_left_samples}")
         print(f"- Amostra não casados (direita): {result.unmatched_right_samples}")

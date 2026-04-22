@@ -100,6 +100,7 @@ python scripts/analyze_orphans.py /caminho/para/workbook.xlsx
 python scripts/summarize_costs_by_wo.py /caminho/para/workbook.xlsx
 python scripts/run_analysis.py --list
 python scripts/run_analysis.py --analysis-id orphan_records --excel-path /caminho/para/workbook.xlsx
+python scripts/chatbot.py --excel-path /caminho/para/workbook.xlsx
 ```
 
 Regras de execução:
@@ -235,30 +236,73 @@ Regras definidas:
 - excluir somente linhas em que `budget_sum == 0` e `cumulative_linecost_sum == 0` ao mesmo tempo;
 - não excluir linhas só porque `budget == 0`;
 - não excluir linhas só porque `cost == 0`;
+- `cumulative_linecost_sum` usa `INVOICECOST.linecost` por `INVOICECOST.refwo` quando essa
+  coluna existe, respeitando `ref_date` via `admchangedate`;
+- não incorporar `INV-AFE.linecost` em `projects_overview` sem validação explícita com o
+  usuário, pois uma tentativa anterior alterou drasticamente os resultados;
 - ordenar por `budget_sum` do maior para o menor;
 - ordenação secundária por `cumulative_linecost_sum`, também do maior para o menor.
 
-## 8. Problema em aberto: `projects_overview`
+## 8. Status validado: `projects_overview`
 
-Problema em aberto:
-- `projects_overview` ainda precisa de auditoria e eventual correção em rodada futura;
-- este documento não declara que a implementação atual esteja correta ou final.
+Status atual:
+- `projects_overview` está se comportando como desejado no escopo funcional atual,
+  conforme confirmação do usuário em 2026-04-13;
+- a tabela comparativa de projetos deve ser tratada como feature validada por testes,
+  execução real com o workbook e confirmação do usuário;
+- existe chatbot de terminal em `scripts/chatbot.py` para selecionar consultas de
+  projetos por menu numérico;
+- no chatbot, as opções `1` e `2` mostram 10 projetos ordenados por
+  `cumulative_linecost_sum` decrescente e depois `budget_sum` decrescente;
+- a opção `1` é uma tabela resumida de budget/cost; a opção `2` é a tabela completa com
+  datas e status;
+- essa ordenação é lexicográfica: `cumulative_linecost_sum` é o critério primário e
+  `budget_sum` só atua como critério secundário em empates de custo;
+- mudanças futuras nessa função devem continuar começando por reprodução concreta ou TDD,
+  sem alterar regras de negócio silenciosamente;
+- este status não transforma resultados antigos não reproduzidos em fatos e não dispensa
+  validação de relações para novas análises derivadas.
 
 Fatos confirmados no repositório:
 - existe implementação em `src/capex_ai/modeling/projects_overview.py`;
 - existe wrapper CLI em `scripts/get_projects_overview.py`;
+- existe wrapper CLI interativo em `scripts/chatbot.py`;
 - existem testes em `tests/test_projects_overview.py`.
+- existem testes de seleção do chatbot em `tests/test_chatbot.py`;
+- existe teste de integração em `tests/test_projects_overview_real_workbook.py` cobrindo a
+  lista inicial de wonums relevantes com o workbook real.
+- foi reproduzida a tabela para todos os projetos, exibindo os 10 primeiros resultados
+  com ordenação por `cumulative_linecost_sum` decrescente e `budget_sum` decrescente;
+  o comportamento foi aceito pelo usuário.
+- auditoria posterior mostrou que `INV-AFE` tem cobertura muito maior por `refwo`, mas a
+  tentativa de promovê-la a fonte principal foi revertida por alterar demais os resultados;
+  esse ponto deve ser tratado como investigação futura, não como regra atual.
 
 Classificação de confiança:
 - a intenção e as regras acima são regras definidas;
-- a implementação atual deve ser tratada como estado presente, não como validação final;
+- a implementação atual está aceita como comportamento desejado para a tabela comparativa
+  no escopo funcional atual;
+- a cobertura com a lista inicial de wonums relevantes valida um recorte concreto do
+  workbook real e sustenta regressão futura desse comportamento;
+- a ordenação por `cumulative_linecost_sum` solicitada em 2026-04-13 foi usada como
+  consulta de apresentação sobre o resultado, sem alterar a ordenação padrão da função;
+- no chatbot, a opção `1` exibe os 10 primeiros projetos em formato resumido
+  (`wonum`, `budget_sum`, `cumulative_linecost_sum`, `remaining_budget_pct`);
+- no chatbot, a opção `2` exibe os 10 primeiros projetos em formato completo, com datas
+  e status;
+- a ordenação do chatbot deve ser entendida como sort primário por custo e sort
+  secundário por budget somente para desempate; se implementada em passos separados,
+  o equivalente é ordenar primeiro por `budget_sum` e depois por
+  `cumulative_linecost_sum` com ordenação estável;
 - resultados antigos sobre `projects_overview` não devem ser tratados como verdade sem reverificação;
 - futuras alterações devem começar por teste ou reprodução concreta com o workbook real.
 
 Ponto de cuidado:
 - `BM9-176428` foi usado repetidamente como caso de teste;
-- existe preocupação de contaminação de análises anteriores por esse foco;
-- próximas auditorias devem diversificar casos e registrar método, dados e resultado.
+- existia preocupação de contaminação de análises anteriores por esse foco;
+- o risco foi parcialmente mitigado pelo teste com a lista diversificada de wonums
+  relevantes, mas novas mudanças de regra devem continuar diversificando casos e
+  registrando método, dados e resultado.
 
 ## 9. Hipóteses, achados anteriores e nível de confiança
 
@@ -269,9 +313,9 @@ Ponto de cuidado:
 | Relações entre tabelas fazem parte do modelo conhecido | Fato confirmado/regra definida | Alta | Estão no prompt, no schema e nesta documentação canônica. |
 | Relações têm match completo, cobertura completa ou correspondência total entre lados | Hipótese não provada | Baixa | Não assumir completude sem validação relacional. |
 | Budget por `budgetcode` e visão semanal fazem parte do sistema final | Regra definida pelo prompt, com arquivos presentes | Alta | Não implica ausência de bugs futuros. |
-| `projects_overview` está resolvido | Achado não confirmado | Baixa | O prompt define que o problema ainda está aberto. |
+| `projects_overview` está se comportando como desejado no escopo atual | Decisão confirmada pelo usuário | Alta | Confirmado em 2026-04-13 após teste com workbook real e consulta dos 10 primeiros projetos por `cumulative_linecost_sum`; mudanças futuras ainda exigem testes. |
 | Resultados antigos de investigações | Achados a reverificar | Baixa | Não há base suficiente neste documento para tratá-los como fatos. |
-| Uso recorrente de `BM9-176428` pode ter contaminado conclusões | Risco registrado | Média | Preocupação explícita do prompt; exige auditoria futura. |
+| Uso recorrente de `BM9-176428` pode ter contaminado conclusões | Risco parcialmente mitigado | Média | A cobertura com lista diversificada de wonums reduziu o risco para o comportamento atual; mudanças futuras devem continuar diversificando casos. |
 | `UDD-918308` é o valor correto, não `BM9-918308` | Correção definida pelo prompt | Alta | Usar `UDD-918308` em futuras auditorias. |
 | Exports JSON antigos em `dev_utils/print_json_for_llm_help/` representam estado atual | Item obsoleto removido | Alta | Eram snapshots antigos para LLM e não eram fonte de verdade. |
 
@@ -300,20 +344,20 @@ Limites permanentes do projeto nesta fase:
 - não alterar regra de negócio silenciosamente.
 
 Problemas em aberto:
-- `projects_overview` requer auditoria em rodada futura;
 - achados antigos e resultados de investigações anteriores precisam de reverificação antes
   de virar fato;
 - cobertura e qualidade de matches das relações devem ser medidas com dados reais antes
   de sustentar análise de negócio.
+- novas análises derivadas de `projects_overview` ainda devem validar previamente as
+  relações e a qualidade estrutural dos dados envolvidos.
 
 ## 12. Próximos passos recomendados, sem executá-los agora
 
 Próximos passos sugeridos para rodadas futuras:
-- auditar `projects_overview` com o workbook real e lista diversificada de wonums;
-- transformar comportamento esperado de `projects_overview` em testes antes de alterar
-  implementação;
-- validar regras de cálculo de `projects_overview` contra dados reais e decisões
-  explícitas, sem assumir origem de campos por inferência;
+- manter a cobertura de regressão de `projects_overview` ao alterar regras, filtros,
+  ordenações ou colunas;
+- para novas ordenações ou filtros de `projects_overview`, decidir explicitamente se são
+  apenas consultas de apresentação ou mudança de regra da função;
 - registrar método, entradas, resultados e dúvidas da auditoria;
 - rodar `python scripts/preflight_check.py` antes de validação real;
 - rodar testes e ruff ao final de qualquer alteração funcional;
@@ -338,6 +382,88 @@ Instruções permanentes de atualização contínua:
 - se outro documento divergir deste, tratar este documento como canônico até que seja atualizado deliberadamente.
 
 ### Registro histórico
+
+2026-04-13, correção curta do chatbot após regressão de fonte de custo:
+- após feedback do usuário, reconhecido que a tentativa de usar `INV-AFE` como fonte
+  principal mudou demais os valores e foi ampla demais;
+- revertida a mudança de fonte de custo em `projects_overview`, retornando ao cálculo por
+  `INVOICECOST.linecost`;
+- `scripts/chatbot.py` foi ajustado para que a opção `1` não seja igual à opção `2`:
+  opção `1` mostra uma tabela resumida de budget/cost, e opção `2` mostra a tabela
+  completa com datas/status;
+- ambas as opções continuam limitadas a 10 linhas e ordenadas por
+  `cumulative_linecost_sum` como critério primário e `budget_sum` apenas como desempate;
+- removidos testes que canonizavam a tentativa incorreta de `INV-AFE` como fonte primária;
+- validação parcial executada: `python -m pytest tests/test_chatbot.py
+  tests/test_projects_overview.py tests/test_projects_overview_real_workbook.py -q -p
+  no:cacheprovider`, com 7 testes aprovados.
+
+2026-04-13, tentativa revertida de correção do chatbot e da cobertura de custo por projeto:
+- o usuário reportou que a opção `1` do chatbot exibia a tabela inteira e não seguia a
+  ordenação desejada;
+- o usuário reportou que a opção `2` parecia mostrar apenas 6 projetos com custo e deixar
+  projetos com custo fora do resultado;
+- reproduzido o comportamento: opção `1` imprimia todos os projetos na ordenação padrão
+  por `budget_sum`; opção `2` retornava 10 linhas, mas só 6 tinham custo positivo porque
+  `projects_overview` usava `INVOICECOST` como fonte principal de custo;
+- auditoria com o workbook real mostrou que `INVOICECOST.refwo` tem custo para 6 projetos,
+  enquanto `INV-AFE.refwo` tem custo para 23.414 projetos;
+- foi tentada uma correção para usar `INV-AFE.linecost` por `refwo` como fonte primária de
+  `cumulative_linecost_sum`, mas essa mudança foi revertida após feedback do usuário por
+  alterar demais os resultados;
+- `scripts/chatbot.py` foi corrigido para que as opções `1` e `2` mostrem somente 10
+  projetos, sempre ordenados por `cumulative_linecost_sum` decrescente e depois
+  `budget_sum` decrescente;
+- esclarecido posteriormente pelo usuário que `cumulative_linecost_sum` é o sort
+  primário e `budget_sum` é sort secundário apenas para empates do custo;
+- foram adicionadas regressões para a tentativa com `INV-AFE`, mas elas também foram
+  removidas na correção curta posterior;
+- validação final executada: `python -m pytest -q -p no:cacheprovider` com 39 testes
+  aprovados; `python -m ruff check --no-cache src tests scripts` aprovado.
+
+2026-04-13, chatbot de terminal para consultas de projetos:
+- criada funcionalidade de chatbot CLI em `scripts/chatbot.py`;
+- ao rodar o arquivo, o usuário escolhe entre as opções `1` e `2`;
+- opção `1`: tabela de budget por projeto;
+- opção `2`: top 10 projetos da última consulta validada, ordenados por
+  `cumulative_linecost_sum` decrescente e depois `budget_sum` decrescente;
+- defaults do chatbot: `--excel-path tests/fixtures/Capex AI - Dados.xlsx`,
+  `--schema configs/schema.yaml` e `--ref-date 2026-03-02`;
+- adicionados testes em `tests/test_chatbot.py` para seleção das opções e rejeição de
+  opção inválida;
+- executado smoke real com a opção `2` do chatbot, retornando a tabela esperada;
+- validação final executada: `python -m pytest -q -p no:cacheprovider` com 37 testes
+  aprovados; `python -m ruff check --no-cache src tests scripts` aprovado.
+
+2026-04-13, confirmação do comportamento desejado de `projects_overview`:
+- o usuário confirmou que `projects_overview` está se comportando como desejado no escopo
+  atual;
+- gerada tabela para todos os projetos com `ref_date=2026-03-02`, exibindo os 10
+  primeiros resultados ordenados por `cumulative_linecost_sum` decrescente e, em seguida,
+  por `budget_sum` decrescente;
+- a ordenação por `cumulative_linecost_sum` foi tratada como consulta de apresentação
+  sobre o resultado, sem mudança de regra na implementação;
+- documentação atualizada para promover `projects_overview` de problema em aberto para
+  comportamento validado no escopo atual;
+- nenhuma alteração de código ou teste foi feita nesta rodada documental.
+
+2026-04-13, teste de integração de `projects_overview` com wonums relevantes:
+- lidos `AGENTS.md` e `docs/WORKING_CONTEXT.md` antes da alteração;
+- reproduzida a função `get_projects_overview` com o workbook real
+  `tests/fixtures/Capex AI - Dados.xlsx`;
+- usada `ref_date=2026-03-02`, data de referência estável encontrada nos dados de custo;
+- adicionada cobertura em `tests/test_projects_overview_real_workbook.py` para a lista:
+  `BM9-132818`, `BM9-132814`, `BM9-176552`, `UDD-918308`, `BM9-186541`,
+  `BM9-176428`;
+- a tabela filtrada retornou todos os wonums relevantes em ordem decrescente de
+  `budget_sum`: `BM9-176428`, `BM9-176552`, `UDD-918308`, `BM9-186541`,
+  `BM9-132814`, `BM9-132818`;
+- corrigidos achados pequenos de lint em `scripts/preflight_check.py` e
+  `scripts/validate_relations.py`;
+- validação final executada: `python -m pytest -q -p no:cacheprovider` com 34 testes
+  aprovados; `python -m ruff check --no-cache src tests scripts` aprovado;
+- `projects_overview` ganhou cobertura concreta com workbook real, mas permanece sujeito a
+  auditorias futuras mais amplas.
 
 2026-04-13, consolidação canônica inicial:
 - `docs/WORKING_CONTEXT.md` passa a ser a única documentação canônica operacional,
